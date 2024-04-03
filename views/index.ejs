@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatroom</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-200 h-screen">
+
+    <div id="chatModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 h-full w-full flex justify-center items-center">
+        <form id="nameForm" class="bg-white p-5 rounded">
+            <h2 class="text-lg mb-4">Enter your name to start chatting</h2>
+            <input type="text" id="username" class="border p-2 w-full mb-4">
+            <button id="enterChat" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Enter Chat</button>
+        </form>
+    </div>
+
+    <div class="hidden py-4" id="chatContainer">
+        <form id="chatForm" class="max-w-md mx-auto flex">
+            <input type="text" id="messageInput" name="message" class="border p-2 w-full" placeholder="Type a message..." required>
+            <button type="submit" id="sendMessage" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4">Send</button>
+        </form>
+
+        <div id="messageList" class="max-w-md mx-auto my-4">
+            <!-- Messages will be loaded here -->
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function(){
+            let userName = '';
+
+            $('#nameForm').submit(function(e){
+                e.preventDefault();
+                userName = $('#username').val().trim();
+                if(userName){
+                    $('#chatModal').hide();
+                    $('#chatContainer').show();
+                }
+            });
+
+            $('#chatForm').submit(function(e){
+                e.preventDefault();
+                const messageText = $('#messageInput').val().trim();
+                if(messageText){
+                    $.ajax({
+                        url: '/api/send-message',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({name: userName, message: messageText}),
+                        success: function(){
+                            // For now, we just clear the input
+                            // Ideally, you would reload or append the new message
+                            $('#messageInput').val('');
+                            fetchMessages();
+                        }
+                    });
+                }
+            });
+
+            function fetchMessages() {
+                $.ajax({
+                    url: '/api/get-messages',
+                    type: 'GET',
+                    success: function(messages) {
+                        $('#messageList').empty(); // Clear existing messages
+                        messages.forEach(function(msg) {
+                            // Append each message as a paragraph
+                            $('#messageList').append(
+                                `<div class="bg-white p-4 rounded-lg shadow mb-2">
+                                    <h5 class="text-sm font-bold">${msg.name}</h5>
+                                    <p class="text-sm">${msg.message}</p>
+                                    <p class="text-xs text-right">${new Date(msg.created_at).toLocaleString()}</p>
+                                </div>`
+                            );
+                        });
+                    }
+                });
+            }
+
+            // Fetch messages immediately and then every 5 seconds
+            fetchMessages();
+            setInterval(fetchMessages, 5000);
+        });
+    </script>
+
+    <style>
+        /* You might want to add bubble styles and other styling here */
+    </style>
+</body>
+</html>
